@@ -35,6 +35,7 @@ export interface QuickAction {
   name: string
   content: string
   userId: string
+  order?: number // Add this field
 }
 
 // Add Template interface and Firebase operations for templates
@@ -222,12 +223,19 @@ export const subscribeToQuickActions = (callback: (quickActions: QuickAction[]) 
   return () => unsubscribe()
 }
 
-export const addQuickAction = async (quickAction: Omit<QuickAction, "id" | "userId">) => {
+export const addQuickAction = async (quickAction: Omit<QuickAction, "id" | "userId" | "order">) => {
   try {
     const userId = await getCurrentUserId()
+
+    // Get the current count of quick actions to set the order
+    const q = query(quickActionsCollection, where("userId", "==", userId))
+    const snapshot = await getDocs(q)
+    const order = snapshot.size // New items will be added at the end
+
     const newQuickAction = {
       ...quickAction,
       userId,
+      order,
     }
     const docRef = doc(quickActionsCollection)
     await setDoc(docRef, newQuickAction)

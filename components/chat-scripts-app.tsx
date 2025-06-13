@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "./auth-wrapper"
 import Header from "./header"
-import QuickActions from "./quick-actions"
 import BulkActions from "./bulk-actions"
 import Sidebar from "./sidebar"
 import MainContent from "./main-content"
@@ -28,6 +27,7 @@ import {
   updateTemplate as fbUpdateTemplate,
   deleteTemplate as fbDeleteTemplate,
 } from "../lib/firebase-service"
+import { Plus, Edit2, Trash2, Zap, GripVertical } from "lucide-react"
 
 // Define Template interface
 interface Template {
@@ -61,6 +61,7 @@ const ChatScriptsApp = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [activeTab, setActiveTab] = useState("scripts")
+  const [draggedItem, setDraggedItem] = useState(null)
 
   // Templates state
   const [templates, setTemplates] = useState<Template[]>([
@@ -160,6 +161,40 @@ const ChatScriptsApp = () => {
   useEffect(() => {
     localStorage.setItem("darkMode", JSON.stringify(darkMode))
   }, [darkMode])
+
+  // Update the keyboard shortcut handler in the useEffect
+  useEffect(() => {
+    // Handler for keyboard shortcuts
+    const handleKeyDown = (e) => {
+      // Only proceed if Alt key is pressed
+      if (e.altKey) {
+        switch (e.key.toLowerCase()) {
+          case "q":
+            e.preventDefault()
+            setActiveTab("scripts")
+            break
+          case "w":
+            e.preventDefault()
+            setActiveTab("quickactions")
+            break
+          case "e":
+            e.preventDefault()
+            setActiveTab("templates")
+            break
+          default:
+            break
+        }
+      }
+    }
+
+    // Add event listener
+    window.addEventListener("keydown", handleKeyDown)
+
+    // Clean up
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [])
 
   // If not authenticated, show login screen
   if (!user) {
@@ -427,6 +462,27 @@ const ChatScriptsApp = () => {
     }
   }
 
+  const updateQuickActionsOrder = async (reorderedTemplates) => {
+    try {
+      // Update the local state first for immediate UI feedback
+      setQuickActionTemplates(reorderedTemplates)
+
+      // Update the order in Firebase if needed
+      // This would require adding an 'order' field to each template
+      // and updating all templates with their new order
+      // For now, we'll just update the local state
+
+      // If you want to implement Firebase updates:
+      // const promises = reorderedTemplates.map((template, index) => {
+      //   return updateQuickAction(template.id, { order: index })
+      // })
+      // await Promise.all(promises)
+    } catch (err) {
+      console.error("Error updating quick action order:", err)
+      setError("Failed to update quick action order. Please try again.")
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
@@ -469,18 +525,6 @@ const ChatScriptsApp = () => {
         signOut={signOut}
         user={user}
       />
-
-      {showQuickActions && (
-        <QuickActions
-          darkMode={darkMode}
-          quickActionTemplates={quickActionTemplates}
-          addQuickAction={addQuickActionHandler}
-          setEditingQuickAction={setEditingQuickAction}
-          setShowQuickActionModal={setShowQuickActionModal}
-          deleteQuickAction={deleteQuickActionHandler}
-          copiedId={copiedId}
-        />
-      )}
 
       {showBulkActions && selectedScripts.size > 0 && (
         <BulkActions
@@ -539,6 +583,128 @@ const ChatScriptsApp = () => {
                 deleteScript={deleteScriptHandler}
               />
             </>
+          ) : activeTab === "quickactions" ? (
+            <div className="w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Quick Actions</h2>
+                <button
+                  onClick={() => {
+                    setEditingQuickAction(null)
+                    setShowQuickActionModal(true)
+                  }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Quick Action</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {quickActionTemplates.map((template, index) => (
+                  <div
+                    key={template.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move"
+                      e.dataTransfer.setData("text/html", e.target.outerHTML)
+                      setDraggedItem(index)
+                      e.target.classList.add("dragging")
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      if (draggedItem === index) return
+
+                      const newItems = [...quickActionTemplates]
+                      const draggedItemContent = newItems[draggedItem]
+                      newItems.splice(draggedItem, 1)
+                      newItems.splice(index, 0, draggedItemContent)
+
+                      setQuickActionTemplates(newItems)
+                      setDraggedItem(index)
+                    }}
+                    onDragEnd={(e) => {
+                      e.target.classList.remove("dragging")
+                      updateQuickActionsOrder(quickActionTemplates)
+                    }}
+                    className={`relative group p-4 rounded-lg text-left transition-colors cursor-move ${
+                      darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-100 hover:bg-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-start mb-2">
+                      <div className="mr-2 cursor-grab text-gray-500">
+                        <GripVertical className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium flex items-center gap-2 mb-2">
+                          {template.name}
+                          {copiedId === `quick-${template.id}` && (
+                            <span className="bg-green-500 text-white text-xs px-1.5 py-0.5 rounded">Copied!</span>
+                          )}
+                        </div>
+                        <div
+                          className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"} whitespace-pre-wrap mb-3 max-h-32 overflow-y-auto`}
+                          style={{ minHeight: "80px" }}
+                        >
+                          {template.content}
+                        </div>
+                        <button
+                          onClick={() => addQuickActionHandler(template)}
+                          className={`w-full py-2 px-3 rounded text-sm font-medium transition-all ${
+                            copiedId === `quick-${template.id}`
+                              ? "bg-green-600 text-white"
+                              : "bg-blue-600 hover:bg-blue-700 text-white"
+                          }`}
+                        >
+                          {copiedId === `quick-${template.id}` ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingQuickAction(template)
+                          setShowQuickActionModal(true)
+                        }}
+                        className={`p-1 rounded transition-colors ${darkMode ? "bg-gray-600 hover:bg-gray-500" : "bg-gray-200 hover:bg-gray-300"}`}
+                        title="Edit template"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteQuickActionHandler(template.id)
+                        }}
+                        className="p-1 rounded bg-red-500 hover:bg-red-600 text-white transition-colors"
+                        title="Delete template"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {quickActionTemplates.length === 0 && (
+                <div className={`text-center py-16 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  <div className="max-w-md mx-auto">
+                    <div
+                      className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                        darkMode ? "bg-gray-800" : "bg-gray-100"
+                      }`}
+                    >
+                      <Zap className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">No quick actions found</h3>
+                    <p className="text-sm">
+                      Create your first quick action to get started with frequently used messages.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <TemplatesTab
               darkMode={darkMode}

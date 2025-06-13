@@ -1,6 +1,6 @@
 "use client"
 
-import { Zap, Heart, Star, Settings, Download, Upload, Sun, Moon, LogOut } from "lucide-react"
+import { Heart, Star, Settings, Download, Upload, Sun, Moon, LogOut } from "lucide-react"
 
 const Header = ({
   scripts,
@@ -34,22 +34,15 @@ const Header = ({
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowQuickActions(!showQuickActions)}
-              className={`p-2 rounded-lg transition-colors ${showQuickActions ? "bg-violet-500 hover:bg-violet-600 text-white" : darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}
-              title="Quick actions"
-            >
-              <Zap className="h-5 w-5" />
-            </button>
-            <button
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-              className={`p-2 rounded-lg transition-colors ${showFavoritesOnly ? "bg-red-500 hover:bg-red-600 text-white" : darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}
+              className={`p-2 rounded-lg transition-colors ${showFavoritesOnly ? "bg-red-500 text-white" : darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}
               title="Show favorites only"
             >
               <Heart className="h-5 w-5" />
             </button>
             <button
               onClick={() => setShowPinnedOnly(!showPinnedOnly)}
-              className={`p-2 rounded-lg transition-colors ${showPinnedOnly ? "bg-yellow-500 hover:bg-yellow-600 text-white" : darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}
+              className={`p-2 rounded-lg transition-colors ${showPinnedOnly ? "bg-yellow-500 text-white" : darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"}`}
               title="Show pinned only"
             >
               <Star className="h-5 w-5" />
@@ -57,7 +50,7 @@ const Header = ({
             {selectedScripts.size > 0 && (
               <button
                 onClick={() => setShowBulkActions(!showBulkActions)}
-                className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+                className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                 title="Bulk actions"
               >
                 <Settings className="h-5 w-5" />
